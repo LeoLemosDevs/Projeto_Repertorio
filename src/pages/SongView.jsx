@@ -154,7 +154,7 @@ export default function SongView() {
               whiteSpace: 'pre-wrap', 
               fontSize: `${notesFontSize}rem`,
               fontWeight: notesBold ? 'bold' : 'normal',
-              color: 'var(--color-primary-dark)',
+              color: 'var(--color-text-main)', // Alterado para cinza clarinho
               backgroundColor: 'var(--color-bg-elevated)',
               padding: '0.5rem',
               borderRadius: 'var(--radius-sm)',

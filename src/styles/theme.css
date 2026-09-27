@@ -1,22 +1,22 @@
 :root {
-  /* Elegant Light Mode - Navy Blue Accents */
-  --color-bg-main: #f8f9fa;
-  --color-bg-panel: #ffffff;
-  --color-bg-elevated: #f1f3f5;
+  /* Elegant Dark Mode - Lilac Accents */
+  --color-bg-main: #130B1C; /* Roxo ultra escuro */
+  --color-bg-panel: #1F1533;
+  --color-bg-elevated: #281D42;
   
-  --color-text-main: #212529;
-  --color-text-muted: #6c757d;
+  --color-text-main: #F1F5F9; /* Cinza claro bem clarinho */
+  --color-text-muted: #94A3B8;
   
-  --color-primary: #1a365d; /* Navy Blue */
-  --color-primary-light: #2b6cb0;
-  --color-primary-dark: #0f1f38;
+  --color-primary: #A78BFA; /* Lilás suave brilhante */
+  --color-primary-light: #C4B5FD;
+  --color-primary-dark: #8B5CF6;
   
-  --color-accent: #e2e8f0; /* Silver / Gray */
-  --color-accent-border: #ced4da;
+  --color-accent: rgba(167, 139, 250, 0.15); /* Fundo de botões desativos */
+  --color-accent-border: rgba(167, 139, 250, 0.3);
   
-  --color-success: #38a169;
+  --color-success: #10B981;
   --color-warning: #d69e2e;
-  --color-danger: #e53e3e;
+  --color-danger: #EF4444;
 
   /* Typography */
   --font-family-main: 'Inter', system-ui, -apple-system, sans-serif;
@@ -60,10 +60,10 @@ body {
 
 /* Glassmorphism panel */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(31, 21, 51, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(167, 139, 250, 0.15);
   box-shadow: var(--shadow-md);
   border-radius: var(--radius-lg);
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Music, CalendarPlus, Save, Lock, LogIn } from 'lucide-react';
+import { Music, CalendarPlus, Save, Lock, LogIn, Trash2, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -29,7 +29,10 @@ export default function Admin() {
   const [eventTheme, setEventTheme] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
-  const [selectedSongs, setSelectedSongs] = useState([]);
+  const [selectedSongs, setSelectedSongs] = useState([]); // [{id, title, tone}]
+  
+  // Lista de Eventos Cadastrados
+  const [eventsList, setEventsList] = useState([]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -44,21 +47,25 @@ export default function Admin() {
     }
   };
 
-  // Busca músicas no banco para o form de eventos
+  // Busca músicas no banco para o form de eventos e busca eventos cadastrados
   useEffect(() => {
     if (isAuthenticated && activeTab === 'events') {
-      const fetchSongs = async () => {
+      const fetchSongsAndEvents = async () => {
         try {
-          const querySnapshot = await getDocs(collection(db, "songs"));
-          const songsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setAvailableSongs(songsList);
+          const qSongs = query(collection(db, "songs"), orderBy("title"));
+          const songsSnap = await getDocs(qSongs);
+          setAvailableSongs(songsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          
+          const qEvents = query(collection(db, "events"), orderBy("createdAt", "desc"));
+          const eventsSnap = await getDocs(qEvents);
+          setEventsList(eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         } catch (error) {
-          console.error("Erro ao buscar músicas: ", error);
+          console.error("Erro ao buscar dados: ", error);
         }
       };
-      fetchSongs();
+      fetchSongsAndEvents();
     }
-  }, [activeTab]);
+  }, [activeTab, isAuthenticated]);
 
   const handleSaveSong = async () => {
     if (!songTitle) {
@@ -92,14 +99,15 @@ export default function Admin() {
       alert("Título e Data são obrigatórios!");
       return;
     }
+    if (selectedSongs.length === 0) {
+      alert("Adicione pelo menos uma música!");
+      return;
+    }
     setLoading(true);
     try {
-      // Buscar os detalhes das músicas selecionadas
-      const songsToSave = availableSongs
-        .filter(s => selectedSongs.includes(s.id))
-        .map(s => ({ id: s.id, title: s.title, tone: s.originalTone, status: 'pending' }));
+      const songsToSave = selectedSongs.map(s => ({ id: s.id, title: s.title, tone: s.tone, status: 'pending' }));
 
-      await addDoc(collection(db, "events"), {
+      const docRef = await addDoc(collection(db, "events"), {
         title: eventTitle,
         theme: eventTheme,
         date: eventDate,
@@ -107,8 +115,12 @@ export default function Admin() {
         songs: songsToSave,
         createdAt: serverTimestamp()
       });
+      
       setSuccessMsg('Evento agendado com sucesso!');
       setEventTitle(''); setEventTheme(''); setEventDate(''); setEventTime(''); setSelectedSongs([]);
+      
+      // Atualiza a lista localmente
+      setEventsList([{ id: docRef.id, title: eventTitle, date: eventDate, songs: songsToSave }, ...eventsList]);
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (e) {
       alert("Erro ao salvar evento: " + e.message);
@@ -116,9 +128,41 @@ export default function Admin() {
     setLoading(false);
   };
 
-  const handleMultiSelect = (e) => {
-    const value = Array.from(e.target.selectedOptions, option => option.value);
-    setSelectedSongs(value);
+  const handleDeleteEvent = async (id) => {
+    if(window.confirm("Tem certeza que deseja excluir esta programação?")) {
+      try {
+        await deleteDoc(doc(db, "events", id));
+        setEventsList(eventsList.filter(e => e.id !== id));
+        setSuccessMsg('Evento excluído com sucesso!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } catch (e) {
+        alert("Erro ao excluir: " + e.message);
+      }
+    }
+  };
+
+  const addSongToEvent = (e) => {
+    const songId = e.target.value;
+    if(!songId) return;
+    const song = availableSongs.find(s => s.id === songId);
+    if(song) {
+      setSelectedSongs([...selectedSongs, { id: song.id, title: song.title, tone: song.originalTone }]);
+    }
+    e.target.value = ""; // reset dropdown
+  };
+
+  const moveSong = (index, direction) => {
+    const newSongs = [...selectedSongs];
+    if (direction === 'up' && index > 0) {
+      [newSongs[index - 1], newSongs[index]] = [newSongs[index], newSongs[index - 1]];
+    } else if (direction === 'down' && index < newSongs.length - 1) {
+      [newSongs[index + 1], newSongs[index]] = [newSongs[index], newSongs[index + 1]];
+    }
+    setSelectedSongs(newSongs);
+  };
+
+  const removeSong = (index) => {
+    setSelectedSongs(selectedSongs.filter((_, i) => i !== index));
   };
 
   if (!isAuthenticated) {
@@ -158,7 +202,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
       <h1 style={{ color: 'var(--color-primary)', marginBottom: '2rem' }}>Configurações</h1>
       
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
@@ -174,7 +218,7 @@ export default function Admin() {
           className={activeTab === 'events' ? 'btn-primary' : 'btn-secondary'}
           style={{ flex: 1 }}
         >
-          <CalendarPlus size={20} /> Agendar Culto / Evento
+          <CalendarPlus size={20} /> Agendar Evento
         </button>
       </div>
 
@@ -210,11 +254,11 @@ export default function Admin() {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Letra da Música (use quebras de linha normais)</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Letra da Música</label>
                 <textarea className="input-field" rows={6} value={lyrics} onChange={e => setLyrics(e.target.value)} placeholder="Cole a letra aqui..."></textarea>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Cifras / Notas (pode deixar em branco por enquanto)</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Cifras / Notas</label>
                 <textarea className="input-field" rows={4} value={chords} onChange={e => setChords(e.target.value)} placeholder="Cole as cifras aqui..."></textarea>
               </div>
               <div>
@@ -222,7 +266,7 @@ export default function Admin() {
                 <input type="url" className="input-field" value={youtube} onChange={e => setYoutube(e.target.value)} placeholder="https://youtube.com/..." />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tempo de Rolagem Automática (segundos)</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Velocidade Rolagem (segundos)</label>
                 <input type="number" className="input-field" value={scrollSpeed} onChange={e => setScrollSpeed(e.target.value)} placeholder="60" />
               </div>
               <button onClick={handleSaveSong} disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
@@ -236,11 +280,11 @@ export default function Admin() {
             <div style={{ display: 'grid', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Título do Evento *</label>
-                <input type="text" className="input-field" value={eventTitle} onChange={e => setEventTitle(e.target.value)} placeholder="Ex: Culto de Domingo da Família" />
+                <input type="text" className="input-field" value={eventTitle} onChange={e => setEventTitle(e.target.value)} placeholder="Ex: Culto de Domingo" />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tema</label>
-                <input type="text" className="input-field" value={eventTheme} onChange={e => setEventTheme(e.target.value)} placeholder="Ex: Louvores para Família" />
+                <input type="text" className="input-field" value={eventTheme} onChange={e => setEventTheme(e.target.value)} placeholder="Ex: Louvores de Adoração" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
@@ -252,22 +296,60 @@ export default function Admin() {
                   <input type="time" className="input-field" value={eventTime} onChange={e => setEventTime(e.target.value)} />
                 </div>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Selecionar Músicas do Repertório</label>
-                {availableSongs.length === 0 ? (
-                  <p style={{ color: 'var(--color-warning)' }}>Nenhuma música cadastrada ainda. Vá na aba "Músicas" primeiro.</p>
-                ) : (
-                  <select className="input-field" multiple style={{ height: '200px' }} value={selectedSongs} onChange={handleMultiSelect}>
-                    {availableSongs.map(s => (
-                      <option key={s.id} value={s.id}>{s.title} ({s.originalTone})</option>
+              
+              <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg-elevated)', borderRadius: 'var(--radius-md)' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>Adicionar Música à Ordem do Culto</label>
+                <select className="input-field" onChange={addSongToEvent} defaultValue="">
+                  <option value="" disabled>Selecione uma música...</option>
+                  {availableSongs.map(s => (
+                    <option key={s.id} value={s.id}>{s.title}</option>
+                  ))}
+                </select>
+
+                {selectedSongs.length > 0 && (
+                  <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {selectedSongs.map((song, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--color-bg-main)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)' }}>
+                        <div>
+                          <span style={{ fontWeight: 'bold', marginRight: '0.5rem', color: 'var(--color-primary)' }}>{idx + 1}.</span>
+                          {song.title} ({song.tone})
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button onClick={() => moveSong(idx, 'up')} disabled={idx === 0} className="btn-secondary" style={{ padding: '0.3rem' }}><ArrowUp size={14}/></button>
+                          <button onClick={() => moveSong(idx, 'down')} disabled={idx === selectedSongs.length - 1} className="btn-secondary" style={{ padding: '0.3rem' }}><ArrowDown size={14}/></button>
+                          <button onClick={() => removeSong(idx)} className="btn-secondary" style={{ padding: '0.3rem', color: 'var(--color-danger)' }}><X size={14}/></button>
+                        </div>
+                      </div>
                     ))}
-                  </select>
+                  </div>
                 )}
-                <small style={{ color: 'var(--color-text-muted)' }}>Segure Ctrl (ou Cmd) no teclado para selecionar várias músicas.</small>
               </div>
+
               <button onClick={handleSaveEvent} disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-                <Save size={20} /> {loading ? 'Salvando...' : 'Criar Evento e Gerar Postagem'}
+                <Save size={20} /> {loading ? 'Salvando...' : 'Criar Programação'}
               </button>
+            </div>
+
+            {/* Listagem de Programações */}
+            <div style={{ marginTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
+              <h2 style={{ marginTop: 0, color: 'var(--color-primary)' }}>Programações Agendadas</h2>
+              {eventsList.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)' }}>Nenhuma programação cadastrada.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {eventsList.map(ev => (
+                    <div key={ev.id} className="glass-panel" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ fontSize: '1.1rem', color: 'var(--color-text-main)' }}>{ev.title}</strong>
+                        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{ev.date} • {ev.songs?.length || 0} músicas</div>
+                      </div>
+                      <button onClick={() => handleDeleteEvent(ev.id)} className="btn-secondary" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)', padding: '0.5rem' }}>
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
