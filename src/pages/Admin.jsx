@@ -26,6 +26,7 @@ export default function Admin() {
 
   // Estados para Eventos e Lista Global de Músicas
   const [availableSongs, setAvailableSongs] = useState([]);
+  const [editingEventId, setEditingEventId] = useState(null);
   const [eventTitle, setEventTitle] = useState('');
   const [eventTheme, setEventTheme] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -143,6 +144,11 @@ export default function Admin() {
     }
   };
 
+  const clearEventForm = () => {
+    setEditingEventId(null);
+    setEventTitle(''); setEventTheme(''); setEventDate(''); setEventTime(''); setSelectedSongs([]);
+  };
+
   const handleSaveEvent = async () => {
     if (!eventTitle || !eventDate) {
       alert("Título e Data são obrigatórios!");
@@ -154,27 +160,49 @@ export default function Admin() {
     }
     setLoading(true);
     try {
-      const songsToSave = selectedSongs.map(s => ({ id: s.id, title: s.title, tone: s.tone, status: 'pending' }));
+      // Se tiver ID de música, mantemos status pending; se for nova ou alterada.
+      // O ideal é manter o status se a música for a mesma. 
+      // Mas para simplificar a reordenação/adição, setaremos tudo para pending ou reusaremos o status se já existir.
+      // Como não guardamos o status original na array de selectedSongs na edição (para não complicar), resetaremos para pending se editada a ordem.
+      const songsToSave = selectedSongs.map(s => ({ id: s.id, title: s.title, tone: s.tone, status: s.status || 'pending' }));
 
-      const docRef = await addDoc(collection(db, "events"), {
+      const eventData = {
         title: eventTitle,
         theme: eventTheme,
         date: eventDate,
         time: eventTime,
-        songs: songsToSave,
-        createdAt: serverTimestamp()
-      });
+        songs: songsToSave
+      };
+
+      if (editingEventId) {
+        await updateDoc(doc(db, "events", editingEventId), eventData);
+        setSuccessMsg('Programação atualizada com sucesso!');
+        setEventsList(eventsList.map(e => e.id === editingEventId ? { ...e, ...eventData } : e));
+      } else {
+        const docRef = await addDoc(collection(db, "events"), {
+          ...eventData,
+          createdAt: serverTimestamp()
+        });
+        setSuccessMsg('Evento agendado com sucesso!');
+        setEventsList([{ id: docRef.id, ...eventData }, ...eventsList]);
+      }
       
-      setSuccessMsg('Evento agendado com sucesso!');
-      setEventTitle(''); setEventTheme(''); setEventDate(''); setEventTime(''); setSelectedSongs([]);
-      
-      // Atualiza a lista localmente
-      setEventsList([{ id: docRef.id, title: eventTitle, date: eventDate, songs: songsToSave }, ...eventsList]);
+      clearEventForm();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (e) {
       alert("Erro ao salvar evento: " + e.message);
     }
     setLoading(false);
+  };
+
+  const handleEditEvent = (ev) => {
+    setEditingEventId(ev.id);
+    setEventTitle(ev.title || '');
+    setEventTheme(ev.theme || '');
+    setEventDate(ev.date || '');
+    setEventTime(ev.time || '');
+    setSelectedSongs(ev.songs || []);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteEvent = async (id) => {
@@ -195,7 +223,7 @@ export default function Admin() {
     if(!songId) return;
     const song = availableSongs.find(s => s.id === songId);
     if(song) {
-      setSelectedSongs([...selectedSongs, { id: song.id, title: song.title, tone: song.originalTone }]);
+      setSelectedSongs([...selectedSongs, { id: song.id, title: song.title, tone: song.originalTone, status: 'pending' }]);
     }
     e.target.value = ""; // reset dropdown
   };
@@ -263,7 +291,7 @@ export default function Admin() {
           <Music size={20} /> Músicas
         </button>
         <button 
-          onClick={() => setActiveTab('events')}
+          onClick={() => { setActiveTab('events'); clearEventForm(); }}
           className={activeTab === 'events' ? 'btn-primary' : 'btn-secondary'}
           style={{ flex: 1 }}
         >
@@ -361,7 +389,15 @@ export default function Admin() {
           </div>
         ) : (
           <div>
-            <h2 style={{ marginTop: 0, color: 'var(--color-primary)' }}>Novo Agendamento</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0, color: 'var(--color-primary)' }}>{editingEventId ? 'Editar Programação' : 'Novo Agendamento'}</h2>
+              {editingEventId && (
+                <button onClick={clearEventForm} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}>
+                  <XCircle size={16} /> Cancelar Edição
+                </button>
+              )}
+            </div>
+
             <div style={{ display: 'grid', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Título do Evento *</label>
@@ -384,7 +420,7 @@ export default function Admin() {
               
               <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg-elevated)', borderRadius: 'var(--radius-md)' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>Adicionar Música à Ordem do Culto</label>
-                <select className="input-field" onChange={addSongToEvent} defaultValue="">
+                <select className="input-field" onChange={addSongToEvent} value="">
                   <option value="" disabled>Selecione uma música...</option>
                   {availableSongs.map(s => (
                     <option key={s.id} value={s.id}>{s.title}</option>
@@ -411,7 +447,7 @@ export default function Admin() {
               </div>
 
               <button onClick={handleSaveEvent} disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-                <Save size={20} /> {loading ? 'Salvando...' : 'Criar Programação'}
+                <Save size={20} /> {loading ? 'Salvando...' : (editingEventId ? 'Atualizar Programação' : 'Criar Programação')}
               </button>
             </div>
 
@@ -428,9 +464,14 @@ export default function Admin() {
                         <strong style={{ fontSize: '1.1rem', color: 'var(--color-text-main)' }}>{ev.title}</strong>
                         <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{ev.date} • {ev.songs?.length || 0} músicas</div>
                       </div>
-                      <button onClick={() => handleDeleteEvent(ev.id)} className="btn-secondary" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)', padding: '0.5rem' }}>
-                        <Trash2 size={18} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => handleEditEvent(ev)} className="btn-secondary" style={{ padding: '0.4rem', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }} title="Editar Programação">
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteEvent(ev.id)} className="btn-secondary" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)', padding: '0.5rem' }} title="Excluir Programação">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
