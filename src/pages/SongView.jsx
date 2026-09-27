@@ -154,13 +154,14 @@ export default function SongView() {
               whiteSpace: 'pre-wrap', 
               fontSize: `${notesFontSize}rem`,
               fontWeight: notesBold ? 'bold' : 'normal',
-              color: 'var(--color-text-main)', // Alterado para cinza clarinho
-              backgroundColor: 'var(--color-bg-elevated)',
-              padding: '0.5rem',
-              borderRadius: 'var(--radius-sm)',
-              maxHeight: '120px',
+              color: '#000000', // Texto preto para fundo branco
+              backgroundColor: '#FFFFFF', // Fundo branco
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-md)',
+              maxHeight: '150px',
               overflowY: 'auto',
-              transition: 'font-size 0.2s, font-weight 0.2s'
+              transition: 'font-size 0.2s, font-weight 0.2s',
+              border: '1px solid var(--color-accent-border)'
             }}>
               {song.chords || "Nenhuma cifra cadastrada."}
             </div>
@@ -247,7 +248,15 @@ export default function SongView() {
           scrollBehavior: 'smooth'
         }}
       >
-        <div style={{ whiteSpace: 'pre-wrap', color: 'var(--color-text-main)' }}>
+        <div style={{ 
+          whiteSpace: 'pre-wrap', 
+          color: '#000000', // Texto preto 
+          backgroundColor: '#FFFFFF', // Fundo branco
+          padding: '1.5rem',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--color-accent-border)',
+          boxShadow: 'var(--shadow-md)'
+        }}>
           {song.lyrics || "Nenhuma letra cadastrada."}
         </div>
         
