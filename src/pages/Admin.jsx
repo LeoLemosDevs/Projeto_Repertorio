@@ -169,7 +169,13 @@ export default function Admin({ initialTab = 'songs' }) {
       // O ideal é manter o status se a música for a mesma. 
       // Mas para simplificar a reordenação/adição, setaremos tudo para pending ou reusaremos o status se já existir.
       // Como não guardamos o status original na array de selectedSongs na edição (para não complicar), resetaremos para pending se editada a ordem.
-      const songsToSave = selectedSongs.map(s => ({ id: s.id, title: s.title, tone: s.tone, status: s.status || 'pending' }));
+      const songsToSave = selectedSongs.map(s => ({ 
+        id: s.id, 
+        title: s.title, 
+        tone: s.tone, 
+        status: s.status || 'pending',
+        leadSinger: s.leadSinger || ''
+      }));
 
       const eventData = {
         title: eventTitle,
@@ -228,9 +234,15 @@ export default function Admin({ initialTab = 'songs' }) {
     if(!songId) return;
     const song = availableSongs.find(s => s.id === songId);
     if(song) {
-      setSelectedSongs([...selectedSongs, { id: song.id, title: song.title, tone: song.originalTone, status: 'pending' }]);
+      setSelectedSongs([...selectedSongs, { id: song.id, title: song.title, tone: song.originalTone, status: 'pending', leadSinger: '' }]);
     }
     e.target.value = ""; // reset dropdown
+  };
+
+  const updateSongSinger = (index, leadSinger) => {
+    const newSongs = [...selectedSongs];
+    newSongs[index].leadSinger = leadSinger;
+    setSelectedSongs(newSongs);
   };
 
   const moveSong = (index, direction) => {
@@ -437,10 +449,20 @@ export default function Admin({ initialTab = 'songs' }) {
                 {selectedSongs.length > 0 && (
                   <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {selectedSongs.map((song, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--color-bg-main)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)' }}>
-                        <div>
-                          <span style={{ fontWeight: 'bold', marginRight: '0.5rem', color: 'var(--color-primary)' }}>{idx + 1}.</span>
-                          {song.title} ({song.tone})
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--color-bg-main)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ flex: 1, paddingRight: '1rem' }}>
+                          <div style={{ marginBottom: '0.5rem' }}>
+                            <span style={{ fontWeight: 'bold', marginRight: '0.5rem', color: 'var(--color-primary)' }}>{idx + 1}.</span>
+                            {song.title} ({song.tone})
+                          </div>
+                          <input 
+                            type="text" 
+                            placeholder="Quem vai cantar? (Opcional)" 
+                            className="input-field" 
+                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', backgroundColor: 'var(--color-bg-panel)' }}
+                            value={song.leadSinger || ''}
+                            onChange={(e) => updateSongSinger(idx, e.target.value)}
+                          />
                         </div>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
                           <button onClick={() => moveSong(idx, 'up')} disabled={idx === 0} className="btn-secondary" style={{ padding: '0.3rem' }}><ArrowUp size={14}/></button>

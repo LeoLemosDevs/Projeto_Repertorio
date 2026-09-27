@@ -98,9 +98,16 @@ export default function EventView() {
                 </span>
                 <div>
                   <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--color-text-main)', fontSize: '1.1rem' }}>{song.title}</h3>
-                  <span style={{ display: 'inline-block', backgroundColor: 'var(--color-bg-elevated)', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: '600' }}>
-                    Tom: {song.tone}
-                  </span>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--color-bg-elevated)', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: '600' }}>
+                      Tom: {song.tone}
+                    </span>
+                    {song.leadSinger && (
+                      <span style={{ display: 'inline-block', backgroundColor: 'var(--color-bg-elevated)', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--color-warning)', fontWeight: '600' }}>
+                        🎤 {song.leadSinger}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               
