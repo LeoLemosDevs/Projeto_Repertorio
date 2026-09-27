@@ -7,10 +7,11 @@ export default function Navbar() {
 
   return (
     <nav style={{
-      backgroundColor: 'var(--color-primary)',
-      color: 'white',
-      padding: '0.5rem 1rem', // Padding reduzido
-      boxShadow: 'var(--shadow-md)',
+      backgroundColor: 'rgba(13, 5, 24, 0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: '1px solid var(--color-accent-border)',
+      padding: '0.5rem 1rem',
       position: 'sticky',
       top: 0,
       zIndex: 100
@@ -22,8 +23,8 @@ export default function Navbar() {
         flexWrap: 'nowrap', // Força a ficar numa linha
         gap: '0.5rem'
       }}>
-        <Link to="/" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
-          <Music size={20} />
+        <Link to="/" style={{ color: 'var(--color-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 'bold', textShadow: '0 0 10px rgba(139, 92, 246, 0.5)' }}>
+          <Music size={22} />
           <span>REPERTÓRIO</span>
         </Link>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
