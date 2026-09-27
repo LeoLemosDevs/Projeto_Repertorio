@@ -15,7 +15,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/letras" element={<SongsList />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={<Admin initialTab="songs" />} />
+          <Route path="/eventos-admin" element={<Admin initialTab="events" />} />
           <Route path="/event/:id" element={<EventView />} />
           <Route path="/song/:id" element={<SongView />} />
         </Routes>

@@ -3,13 +3,18 @@ import { Music, CalendarPlus, Save, Lock, LogIn, Trash2, ArrowUp, ArrowDown, X, 
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 
-export default function Admin() {
+export default function Admin({ initialTab = 'songs' }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  const [activeTab, setActiveTab] = useState('songs');
+  const [activeTab, setActiveTab] = useState(initialTab);
+  
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -280,7 +285,9 @@ export default function Admin() {
 
   return (
     <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
-      <h1 style={{ color: 'var(--color-primary)', marginBottom: '2rem' }}>Configurações</h1>
+      <h1 style={{ color: 'var(--color-primary)', marginBottom: '2rem' }}>
+        {activeTab === 'songs' ? 'Configurações (Músicas)' : 'Gerenciar Eventos'}
+      </h1>
       
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button 
