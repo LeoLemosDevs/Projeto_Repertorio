@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowUp, ArrowDown, PlayCircle, PauseCircle, Plus, Minus, Music as MusicIcon, ZoomIn, ZoomOut, FastForward, Rewind } from 'lucide-react';
+import { ArrowLeft, PlayCircle, PauseCircle, Plus, Minus, Music as MusicIcon, ZoomIn, ZoomOut, FastForward, Rewind } from 'lucide-react';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -53,10 +53,6 @@ export default function SongView() {
     return () => clearInterval(interval);
   }, [isPlaying, song, speedMultiplier]);
 
-  const handleManualScroll = (direction) => {
-    window.scrollBy({ top: direction === 'up' ? -200 : 200, behavior: 'smooth' });
-  };
-
   if (loading) return <div style={{ textAlign: 'center', marginTop: '3rem' }}>Carregando música...</div>;
   if (!song) return <div style={{ textAlign: 'center', marginTop: '3rem' }}>Música não encontrada.</div>;
 
@@ -64,92 +60,104 @@ export default function SongView() {
   const transposeTone = (step) => setToneIndex((prev) => prev + step);
 
   return (
-    <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Cabeçalho da Música */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      {/* Bloco 100% Fixo no Topo (Cabeçalho + Notas + Controles) */}
+      <div style={{ 
+        position: 'sticky', 
+        top: '64px', // Logo abaixo do Navbar
+        zIndex: 10, 
+        backgroundColor: 'var(--color-bg-main)', // Fundo sólido para esconder a letra passando
+        paddingTop: '1rem',
+        paddingBottom: '0.5rem'
+      }}>
+        
+        {/* Cabeçalho da Música */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
           <div>
-            <Link to={eventId ? `/event/${eventId}` : '/'} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', textDecoration: 'none', marginBottom: '1rem' }}>
+            <Link to={eventId ? `/event/${eventId}` : '/'} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', textDecoration: 'none', marginBottom: '0.5rem' }}>
               <ArrowLeft size={16} /> Voltar
             </Link>
-            <h1 style={{ fontSize: '2rem', color: 'var(--color-primary)', margin: '0 0 0.5rem 0' }}>{song.title}</h1>
-            <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '1rem' }}>{song.singer}</p>
+            <h1 style={{ fontSize: '1.75rem', color: 'var(--color-primary)', margin: '0 0 0.25rem 0', lineHeight: 1 }}>{song.title}</h1>
+            <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.9rem' }}>{song.singer}</p>
           </div>
           
-          <div className="glass-panel" style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tom</span>
+          <div className="glass-panel" style={{ padding: '0.4rem 0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Tom</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button onClick={() => transposeTone(-1)} className="btn-secondary" style={{ padding: '0.25rem', borderRadius: '50%' }}><Minus size={14} /></button>
-              <strong style={{ fontSize: '1.25rem', color: 'var(--color-primary)', minWidth: '1.5rem', textAlign: 'center' }}>{currentTone}</strong>
-              <button onClick={() => transposeTone(1)} className="btn-secondary" style={{ padding: '0.25rem', borderRadius: '50%' }}><Plus size={14} /></button>
+              <button onClick={() => transposeTone(-1)} className="btn-secondary" style={{ padding: '0.2rem', borderRadius: '50%' }}><Minus size={14} /></button>
+              <strong style={{ fontSize: '1.1rem', color: 'var(--color-primary)', minWidth: '1.2rem', textAlign: 'center' }}>{currentTone}</strong>
+              <button onClick={() => transposeTone(1)} className="btn-secondary" style={{ padding: '0.2rem', borderRadius: '50%' }}><Plus size={14} /></button>
             </div>
           </div>
         </div>
 
-        {/* Barra de Controles de Leitura (Velocidade, Fonte, Play/Pause) */}
-        <div className="glass-panel" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem', padding: '1rem', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button 
-            className="btn-primary" 
-            onClick={() => setIsPlaying(!isPlaying)}
-            style={{ backgroundColor: isPlaying ? 'var(--color-danger)' : 'var(--color-primary)', flex: '1 1 auto', justifyContent: 'center' }}
-          >
-            {isPlaying ? <><PauseCircle size={20} /> Pausar</> : <><PlayCircle size={20} /> Tocar / Rolar</>}
-          </button>
-          
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn-secondary" onClick={() => setSpeedMultiplier(prev => prev * 1.2)} title="Mais Devagar">
-              <Rewind size={18} /> Devagar
-            </button>
-            <button className="btn-secondary" onClick={() => setSpeedMultiplier(prev => prev * 0.8)} title="Mais Rápido">
-              Rápido <FastForward size={18} />
-            </button>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn-secondary" onClick={() => setFontSize(prev => Math.max(1, prev - 0.2))} title="Diminuir Letra">
-              <ZoomOut size={18} />
-            </button>
-            <button className="btn-secondary" onClick={() => setFontSize(prev => Math.min(3, prev + 0.2))} title="Aumentar Letra">
-              <ZoomIn size={18} />
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn-secondary" onClick={() => handleManualScroll('up')} title="Voltar Letra">
-              <ArrowUp size={18} /> Voltar
-            </button>
-            <button className="btn-secondary" onClick={() => handleManualScroll('down')} title="Descer Letra">
-              <ArrowDown size={18} /> Pular
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Caixa de Notas Fixa no Topo */}
-      <div style={{ position: 'sticky', top: '70px', zIndex: 10 }}>
-        <div className="glass-panel" style={{ padding: '1rem', borderTop: '4px solid var(--color-primary)', boxShadow: 'var(--shadow-lg)' }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '1rem' }}>
-            <MusicIcon size={16} /> Notas da Música
+        {/* Caixa de Notas */}
+        <div className="glass-panel" style={{ padding: '0.75rem', borderTop: '4px solid var(--color-primary)', boxShadow: 'var(--shadow-md)', marginBottom: '0.5rem' }}>
+          <h3 style={{ margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '0.9rem' }}>
+            <MusicIcon size={14} /> Notas da Música
           </h3>
           <div style={{ 
             fontFamily: 'var(--font-family-music)', 
             whiteSpace: 'pre-wrap', 
-            fontSize: '1.1rem',
+            fontSize: '1rem',
             color: 'var(--color-primary-dark)',
             backgroundColor: 'var(--color-bg-elevated)',
-            padding: '0.75rem',
-            borderRadius: 'var(--radius-md)',
-            maxHeight: '150px',
+            padding: '0.5rem',
+            borderRadius: 'var(--radius-sm)',
+            maxHeight: '120px',
             overflowY: 'auto'
           }}>
             {song.chords || "Nenhuma cifra cadastrada."}
           </div>
         </div>
+
+        {/* Controles de Leitura (Compactos em uma linha) */}
+        <div className="glass-panel" style={{ 
+          display: 'flex', 
+          gap: '0.5rem', 
+          padding: '0.5rem', 
+          alignItems: 'center', 
+          overflowX: 'auto',
+          whiteSpace: 'nowrap'
+        }}>
+          <button 
+            className="btn-primary" 
+            onClick={() => setIsPlaying(!isPlaying)}
+            style={{ 
+              backgroundColor: isPlaying ? 'var(--color-danger)' : 'var(--color-primary)', 
+              padding: '0.5rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            {isPlaying ? <PauseCircle size={18} /> : <PlayCircle size={18} />} 
+            <span style={{ fontSize: '0.9rem' }}>{isPlaying ? 'Pausar' : 'Tocar'}</span>
+          </button>
+          
+          <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'var(--color-bg-elevated)', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
+            <button className="btn-secondary" style={{ padding: '0.4rem' }} onClick={() => setSpeedMultiplier(prev => prev * 1.2)} title="Mais Devagar">
+              <Rewind size={16} />
+            </button>
+            <button className="btn-secondary" style={{ padding: '0.4rem' }} onClick={() => setSpeedMultiplier(prev => prev * 0.8)} title="Mais Rápido">
+              <FastForward size={16} />
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'var(--color-bg-elevated)', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
+            <button className="btn-secondary" style={{ padding: '0.4rem' }} onClick={() => setFontSize(prev => Math.max(1, prev - 0.2))} title="Diminuir Letra">
+              <ZoomOut size={16} />
+            </button>
+            <button className="btn-secondary" style={{ padding: '0.4rem' }} onClick={() => setFontSize(prev => Math.min(3, prev + 0.2))} title="Aumentar Letra">
+              <ZoomIn size={16} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Letra da Música */}
-      <div className="glass-panel" style={{ padding: '2rem', fontSize: `${fontSize}rem`, lineHeight: '1.8', transition: 'font-size 0.2s' }}>
+      <div className="glass-panel" style={{ padding: '1.5rem', fontSize: `${fontSize}rem`, lineHeight: '1.8', transition: 'font-size 0.2s', marginTop: '1rem' }}>
         <div style={{ whiteSpace: 'pre-wrap', color: 'var(--color-text-main)' }}>
           {song.lyrics || "Nenhuma letra cadastrada."}
         </div>
