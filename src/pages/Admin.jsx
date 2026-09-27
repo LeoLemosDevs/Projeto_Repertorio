@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Music, CalendarPlus, Save, Lock, LogIn, Trash2, ArrowUp, ArrowDown, X } from 'lucide-react';
+import { Music, CalendarPlus, Save, Lock, LogIn, Trash2, ArrowUp, ArrowDown, X, Edit, XCircle } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -14,6 +14,7 @@ export default function Admin() {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Estados para a Música
+  const [editingSongId, setEditingSongId] = useState(null);
   const [songTitle, setSongTitle] = useState('');
   const [singer, setSinger] = useState('');
   const [genre, setGenre] = useState('');
@@ -23,7 +24,7 @@ export default function Admin() {
   const [youtube, setYoutube] = useState('');
   const [scrollSpeed, setScrollSpeed] = useState(60);
 
-  // Estados para Eventos
+  // Estados para Eventos e Lista Global de Músicas
   const [availableSongs, setAvailableSongs] = useState([]);
   const [eventTitle, setEventTitle] = useState('');
   const [eventTheme, setEventTheme] = useState('');
@@ -47,25 +48,33 @@ export default function Admin() {
     }
   };
 
-  // Busca músicas no banco para o form de eventos e busca eventos cadastrados
+  // Busca músicas e eventos no banco
   useEffect(() => {
-    if (isAuthenticated && activeTab === 'events') {
-      const fetchSongsAndEvents = async () => {
+    if (isAuthenticated) {
+      const fetchData = async () => {
         try {
           const qSongs = query(collection(db, "songs"), orderBy("title"));
           const songsSnap = await getDocs(qSongs);
           setAvailableSongs(songsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
           
-          const qEvents = query(collection(db, "events"), orderBy("createdAt", "desc"));
-          const eventsSnap = await getDocs(qEvents);
-          setEventsList(eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          if (activeTab === 'events') {
+            const qEvents = query(collection(db, "events"), orderBy("createdAt", "desc"));
+            const eventsSnap = await getDocs(qEvents);
+            setEventsList(eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          }
         } catch (error) {
           console.error("Erro ao buscar dados: ", error);
         }
       };
-      fetchSongsAndEvents();
+      fetchData();
     }
   }, [activeTab, isAuthenticated]);
+
+  const clearSongForm = () => {
+    setEditingSongId(null);
+    setSongTitle(''); setSinger(''); setGenre(''); setTone('C');
+    setLyrics(''); setChords(''); setYoutube(''); setScrollSpeed(60);
+  };
 
   const handleSaveSong = async () => {
     if (!songTitle) {
@@ -74,7 +83,7 @@ export default function Admin() {
     }
     setLoading(true);
     try {
-      await addDoc(collection(db, "songs"), {
+      const songData = {
         title: songTitle,
         singer: singer,
         genre: genre,
@@ -82,16 +91,56 @@ export default function Admin() {
         lyrics: lyrics,
         chords: chords,
         youtube: youtube,
-        scrollSpeed: Number(scrollSpeed),
-        createdAt: serverTimestamp()
-      });
-      setSuccessMsg('Música salva com sucesso!');
-      setSongTitle(''); setSinger(''); setGenre(''); setLyrics(''); setChords(''); setYoutube('');
+        scrollSpeed: Number(scrollSpeed)
+      };
+
+      if (editingSongId) {
+        // Editar
+        await updateDoc(doc(db, "songs", editingSongId), songData);
+        setSuccessMsg('Música atualizada com sucesso!');
+        setAvailableSongs(availableSongs.map(s => s.id === editingSongId ? { id: editingSongId, ...songData } : s));
+      } else {
+        // Criar Nova
+        const docRef = await addDoc(collection(db, "songs"), {
+          ...songData,
+          createdAt: serverTimestamp()
+        });
+        setSuccessMsg('Música salva com sucesso!');
+        setAvailableSongs([...availableSongs, { id: docRef.id, ...songData }].sort((a,b) => a.title.localeCompare(b.title)));
+      }
+      
+      clearSongForm();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (e) {
       alert("Erro ao salvar música: " + e.message);
     }
     setLoading(false);
+  };
+
+  const handleEditSong = (song) => {
+    setEditingSongId(song.id);
+    setSongTitle(song.title || '');
+    setSinger(song.singer || '');
+    setGenre(song.genre || '');
+    setTone(song.originalTone || 'C');
+    setLyrics(song.lyrics || '');
+    setChords(song.chords || '');
+    setYoutube(song.youtube || '');
+    setScrollSpeed(song.scrollSpeed || 60);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteSong = async (id) => {
+    if(window.confirm("Tem certeza que deseja EXCLUIR esta música definitivamente?")) {
+      try {
+        await deleteDoc(doc(db, "songs", id));
+        setAvailableSongs(availableSongs.filter(s => s.id !== id));
+        setSuccessMsg('Música excluída com sucesso!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } catch (e) {
+        alert("Erro ao excluir música: " + e.message);
+      }
+    }
   };
 
   const handleSaveEvent = async () => {
@@ -207,11 +256,11 @@ export default function Admin() {
       
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button 
-          onClick={() => setActiveTab('songs')}
+          onClick={() => { setActiveTab('songs'); clearSongForm(); }}
           className={activeTab === 'songs' ? 'btn-primary' : 'btn-secondary'}
           style={{ flex: 1 }}
         >
-          <Music size={20} /> Cadastrar Músicas
+          <Music size={20} /> Músicas
         </button>
         <button 
           onClick={() => setActiveTab('events')}
@@ -231,7 +280,15 @@ export default function Admin() {
 
         {activeTab === 'songs' ? (
           <div>
-            <h2 style={{ marginTop: 0, color: 'var(--color-primary)' }}>Nova Música</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0, color: 'var(--color-primary)' }}>{editingSongId ? 'Editar Música' : 'Nova Música'}</h2>
+              {editingSongId && (
+                <button onClick={clearSongForm} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}>
+                  <XCircle size={16} /> Cancelar Edição
+                </button>
+              )}
+            </div>
+            
             <div style={{ display: 'grid', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Título da Música *</label>
@@ -270,8 +327,35 @@ export default function Admin() {
                 <input type="number" className="input-field" value={scrollSpeed} onChange={e => setScrollSpeed(e.target.value)} placeholder="60" />
               </div>
               <button onClick={handleSaveSong} disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-                <Save size={20} /> {loading ? 'Salvando...' : 'Salvar Música'}
+                <Save size={20} /> {loading ? 'Salvando...' : (editingSongId ? 'Atualizar Música' : 'Salvar Nova Música')}
               </button>
+            </div>
+
+            {/* Listagem de Músicas para Editar/Excluir */}
+            <div style={{ marginTop: '4rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
+              <h2 style={{ marginTop: 0, color: 'var(--color-primary)' }}>Músicas Cadastradas</h2>
+              {availableSongs.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)' }}>Nenhuma música cadastrada.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {availableSongs.map(song => (
+                    <div key={song.id} className="glass-panel" style={{ padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ fontSize: '1rem', color: 'var(--color-text-main)', display: 'block' }}>{song.title}</strong>
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{song.singer || 'Sem cantor'} • Tom: {song.originalTone}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => handleEditSong(song)} className="btn-secondary" style={{ padding: '0.4rem', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }} title="Editar Música">
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteSong(song.id)} className="btn-secondary" style={{ padding: '0.4rem', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }} title="Excluir Música">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
