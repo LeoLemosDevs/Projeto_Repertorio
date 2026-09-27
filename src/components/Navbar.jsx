@@ -9,7 +9,7 @@ export default function Navbar() {
     <nav style={{
       backgroundColor: 'var(--color-primary)',
       color: 'white',
-      padding: '1rem',
+      padding: '0.5rem 1rem', // Padding reduzido
       boxShadow: 'var(--shadow-md)',
       position: 'sticky',
       top: 0,
@@ -19,22 +19,22 @@ export default function Navbar() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem'
+        flexWrap: 'nowrap', // Força a ficar numa linha
+        gap: '0.5rem'
       }}>
         <Link to="/" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
-          <Music />
-          <span>REPERTÓRIO MUSICAL</span>
+          <Music size={20} />
+          <span>REPERTÓRIO</span>
         </Link>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <Link to="/" className={location.pathname === '/' ? "btn-primary" : "btn-secondary"} style={location.pathname === '/' ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)' } : { backgroundColor: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>
-            <CalendarDays size={18} /> Página Principal
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Link to="/" title="Página Principal" className={location.pathname === '/' ? "btn-primary" : "btn-secondary"} style={location.pathname === '/' ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)', padding: '0.5rem' } : { backgroundColor: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '0.5rem' }}>
+            <CalendarDays size={20} />
           </Link>
-          <Link to="/letras" className={location.pathname === '/letras' ? "btn-primary" : "btn-secondary"} style={location.pathname === '/letras' ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)' } : { backgroundColor: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>
-            <Library size={18} /> Letras
+          <Link to="/letras" title="Letras" className={location.pathname === '/letras' ? "btn-primary" : "btn-secondary"} style={location.pathname === '/letras' ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)', padding: '0.5rem' } : { backgroundColor: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '0.5rem' }}>
+            <Library size={20} />
           </Link>
-          <Link to="/admin" className={location.pathname === '/admin' ? "btn-primary" : "btn-secondary"} style={location.pathname === '/admin' ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)' } : { backgroundColor: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>
-            <Settings size={18} /> Configurações
+          <Link to="/admin" title="Configurações" className={location.pathname === '/admin' ? "btn-primary" : "btn-secondary"} style={location.pathname === '/admin' ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)', padding: '0.5rem' } : { backgroundColor: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '0.5rem' }}>
+            <Settings size={20} />
           </Link>
         </div>
       </div>

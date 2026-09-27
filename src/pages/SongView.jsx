@@ -16,9 +16,13 @@ export default function SongView() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  // Novos controles de leitura
+  // Controles de leitura (Letra)
   const [fontSize, setFontSize] = useState(1.4); // em rem
   const [speedMultiplier, setSpeedMultiplier] = useState(1); // 1 = normal, 0.5 = rápido, 2 = devagar
+
+  // Controles de notas
+  const [notesFontSize, setNotesFontSize] = useState(1); // em rem
+  const [notesBold, setNotesBold] = useState(false);
 
   useEffect(() => {
     const fetchSong = async () => {
@@ -69,7 +73,7 @@ export default function SongView() {
       margin: '0 auto', 
       display: 'flex', 
       flexDirection: 'column',
-      height: 'calc(100vh - 90px)', // Altura total menos a Navbar
+      height: 'calc(100vh - 56px)', // Altura total menos a Navbar que agora é menor
       overflow: 'hidden' // Impede a rolagem da página inteira
     }}>
       
@@ -96,21 +100,33 @@ export default function SongView() {
           </div>
         </div>
 
-        {/* Caixa de Notas */}
-        <div className="glass-panel" style={{ padding: '0.75rem', borderTop: '4px solid var(--color-primary)', boxShadow: 'var(--shadow-md)', marginBottom: '0.5rem' }}>
-          <h3 style={{ margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '0.9rem' }}>
-            <MusicIcon size={14} /> Notas da Música
-          </h3>
+        {/* Caixa de Notas com Controles */}
+        <div className="glass-panel" style={{ padding: '0.5rem 0.75rem', borderTop: '4px solid var(--color-primary)', boxShadow: 'var(--shadow-md)', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '0.9rem' }}>
+              <MusicIcon size={14} /> Notas da Música
+            </h3>
+            
+            {/* Controles de Notas (Negrito, Zoom In/Out) */}
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <button onClick={() => setNotesBold(!notesBold)} className={notesBold ? "btn-primary" : "btn-secondary"} style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', fontWeight: 'bold' }}>B</button>
+              <button onClick={() => setNotesFontSize(p => Math.max(0.7, p - 0.1))} className="btn-secondary" style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem' }}>-</button>
+              <button onClick={() => setNotesFontSize(p => Math.min(2, p + 0.1))} className="btn-secondary" style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem' }}>+</button>
+            </div>
+          </div>
+          
           <div style={{ 
             fontFamily: 'var(--font-family-music)', 
             whiteSpace: 'pre-wrap', 
-            fontSize: '1rem',
+            fontSize: `${notesFontSize}rem`,
+            fontWeight: notesBold ? 'bold' : 'normal',
             color: 'var(--color-primary-dark)',
             backgroundColor: 'var(--color-bg-elevated)',
             padding: '0.5rem',
             borderRadius: 'var(--radius-sm)',
             maxHeight: '120px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            transition: 'font-size 0.2s, font-weight 0.2s'
           }}>
             {song.chords || "Nenhuma cifra cadastrada."}
           </div>
