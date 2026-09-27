@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Admin from './pages/Admin';
 import EventView from './pages/EventView';
 import SongView from './pages/SongView';
+import SongsList from './pages/SongsList';
 import './index.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
       <main className="container" style={{ padding: '2rem 1rem' }}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/letras" element={<SongsList />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/event/:id" element={<EventView />} />
           <Route path="/song/:id" element={<SongView />} />

@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Music, CalendarPlus, Save } from 'lucide-react';
+import { Music, CalendarPlus, Save, Lock, LogIn } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 
 export default function Admin() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
   const [activeTab, setActiveTab] = useState('songs');
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -26,9 +31,22 @@ export default function Admin() {
   const [eventTime, setEventTime] = useState('');
   const [selectedSongs, setSelectedSongs] = useState([]);
 
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (
+      (username === 'admin' && password === 'admin') ||
+      (username === 'leo' && password === 'leo123')
+    ) {
+      setIsAuthenticated(true);
+      setLoginError('');
+    } else {
+      setLoginError('Usuário ou senha incorretos.');
+    }
+  };
+
   // Busca músicas no banco para o form de eventos
   useEffect(() => {
-    if (activeTab === 'events') {
+    if (isAuthenticated && activeTab === 'events') {
       const fetchSongs = async () => {
         try {
           const querySnapshot = await getDocs(collection(db, "songs"));
@@ -103,9 +121,45 @@ export default function Admin() {
     setSelectedSongs(value);
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="animate-slide-up" style={{ maxWidth: '400px', margin: '4rem auto', textAlign: 'center' }}>
+        <div className="glass-panel" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: 'var(--color-primary)' }}>
+            <Lock size={48} />
+          </div>
+          <h2 style={{ color: 'var(--color-primary)', marginBottom: '1.5rem' }}>Acesso Restrito</h2>
+          
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <input 
+              type="text" 
+              className="input-field" 
+              placeholder="Usuário" 
+              value={username} 
+              onChange={e => setUsername(e.target.value)} 
+              required
+            />
+            <input 
+              type="password" 
+              className="input-field" 
+              placeholder="Senha" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              required
+            />
+            {loginError && <p style={{ color: 'var(--color-danger)', fontSize: '0.9rem', margin: 0 }}>{loginError}</p>}
+            <button type="submit" className="btn-primary" style={{ marginTop: '0.5rem' }}>
+              <LogIn size={20} /> Entrar
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ color: 'var(--color-primary)', marginBottom: '2rem' }}>Painel Administrativo</h1>
+      <h1 style={{ color: 'var(--color-primary)', marginBottom: '2rem' }}>Configurações</h1>
       
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button 
