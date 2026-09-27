@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, PlayCircle, Plus, Minus, Music as MusicIcon } from 'lucide-react';
+import { ArrowLeft, ArrowUp, ArrowDown, PlayCircle, PauseCircle, Plus, Minus, Music as MusicIcon, ZoomIn, ZoomOut, FastForward, Rewind } from 'lucide-react';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -9,12 +9,16 @@ const notesList = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', '
 export default function SongView() {
   const { id } = useParams();
   const location = useLocation();
-  const { eventId, currentSongIndex } = location.state || {}; // Pra voltar pro evento certo
+  const { eventId, currentSongIndex } = location.state || {};
   
   const [song, setSong] = useState(null);
   const [toneIndex, setToneIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Novos controles de leitura
+  const [fontSize, setFontSize] = useState(1.4); // em rem
+  const [speedMultiplier, setSpeedMultiplier] = useState(1); // 1 = normal, 0.5 = rápido, 2 = devagar
 
   useEffect(() => {
     const fetchSong = async () => {
@@ -37,28 +41,27 @@ export default function SongView() {
     fetchSong();
   }, [id]);
 
-  // Auto scroll logic (simplified)
   useEffect(() => {
     let interval;
     if (isPlaying && song) {
-      // scrollSpeed salva em segundos na criação. Convertemos pra milisegundos de intervalo pro setInterval (estimativa simples)
-      // Um número menor no intervalo = mais rápido.
-      const intervalMs = (song.scrollSpeed || 60) * 1000 / window.document.body.scrollHeight || 50;
+      const baseIntervalMs = (song.scrollSpeed || 60) * 1000 / window.document.body.scrollHeight || 50;
+      const actualInterval = baseIntervalMs * speedMultiplier;
       interval = setInterval(() => {
         window.scrollBy({ top: 1, behavior: 'smooth' });
-      }, intervalMs);
+      }, actualInterval);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, song]);
+  }, [isPlaying, song, speedMultiplier]);
+
+  const handleManualScroll = (direction) => {
+    window.scrollBy({ top: direction === 'up' ? -200 : 200, behavior: 'smooth' });
+  };
 
   if (loading) return <div style={{ textAlign: 'center', marginTop: '3rem' }}>Carregando música...</div>;
   if (!song) return <div style={{ textAlign: 'center', marginTop: '3rem' }}>Música não encontrada.</div>;
 
   const currentTone = notesList[(toneIndex + 12) % 12];
-
-  const transposeTone = (step) => {
-    setToneIndex((prev) => prev + step);
-  };
+  const transposeTone = (step) => setToneIndex((prev) => prev + step);
 
   return (
     <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -84,19 +87,42 @@ export default function SongView() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+        {/* Barra de Controles de Leitura (Velocidade, Fonte, Play/Pause) */}
+        <div className="glass-panel" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem', padding: '1rem', justifyContent: 'space-between', alignItems: 'center' }}>
           <button 
             className="btn-primary" 
             onClick={() => setIsPlaying(!isPlaying)}
-            style={{ backgroundColor: isPlaying ? 'var(--color-danger)' : 'var(--color-primary)', flex: 1 }}
+            style={{ backgroundColor: isPlaying ? 'var(--color-danger)' : 'var(--color-primary)', flex: '1 1 auto', justifyContent: 'center' }}
           >
-            <PlayCircle size={20} /> {isPlaying ? 'Pausar Rolagem' : 'Iniciar Rolagem'}
+            {isPlaying ? <><PauseCircle size={20} /> Pausar</> : <><PlayCircle size={20} /> Tocar / Rolar</>}
           </button>
-          {song.youtube && (
-            <a href={song.youtube} target="_blank" rel="noreferrer" className="btn-secondary" style={{ textDecoration: 'none', flex: 1, textAlign: 'center' }}>
-              Ver no YouTube
-            </a>
-          )}
+          
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn-secondary" onClick={() => setSpeedMultiplier(prev => prev * 1.2)} title="Mais Devagar">
+              <Rewind size={18} /> Devagar
+            </button>
+            <button className="btn-secondary" onClick={() => setSpeedMultiplier(prev => prev * 0.8)} title="Mais Rápido">
+              Rápido <FastForward size={18} />
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn-secondary" onClick={() => setFontSize(prev => Math.max(1, prev - 0.2))} title="Diminuir Letra">
+              <ZoomOut size={18} />
+            </button>
+            <button className="btn-secondary" onClick={() => setFontSize(prev => Math.min(3, prev + 0.2))} title="Aumentar Letra">
+              <ZoomIn size={18} />
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn-secondary" onClick={() => handleManualScroll('up')} title="Voltar Letra">
+              <ArrowUp size={18} /> Voltar
+            </button>
+            <button className="btn-secondary" onClick={() => handleManualScroll('down')} title="Descer Letra">
+              <ArrowDown size={18} /> Pular
+            </button>
+          </div>
         </div>
       </div>
 
@@ -122,15 +148,15 @@ export default function SongView() {
         </div>
       </div>
 
-      {/* Letra da Música (O que vai rolar) */}
-      <div className="glass-panel" style={{ padding: '2rem', fontSize: '1.4rem', lineHeight: '1.8' }}>
+      {/* Letra da Música */}
+      <div className="glass-panel" style={{ padding: '2rem', fontSize: `${fontSize}rem`, lineHeight: '1.8', transition: 'font-size 0.2s' }}>
         <div style={{ whiteSpace: 'pre-wrap', color: 'var(--color-text-main)' }}>
           {song.lyrics || "Nenhuma letra cadastrada."}
         </div>
       </div>
       
-      {/* Espaço extra no final para que a rolagem não pare abruptamente */}
-      <div style={{ height: '50vh' }}></div>
+      {/* Espaço extra */}
+      <div style={{ height: '70vh' }}></div>
 
     </div>
   );
