@@ -148,7 +148,7 @@ export default function SongView() {
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               {showNotes && (
                 <div style={{ display: 'flex', gap: '0.25rem', borderRight: '1px solid rgba(255,255,255,0.1)', paddingRight: '0.5rem' }}>
-                  <button onClick={() => setNotesBold(!notesBold)} className={notesBold ? "btn-primary" : "btn-secondary"} style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', fontWeight: 'bold' }}>B</button>
+                  <button onClick={() => setNotesBold(!notesBold)} className={notesBold ? "btn-active" : "btn-secondary"} style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem', fontWeight: 'bold' }}>B</button>
                   <button onClick={() => setNotesFontSize(p => Math.max(0.7, p - 0.1))} className="btn-secondary" style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem' }}>-</button>
                   <button onClick={() => setNotesFontSize(p => Math.min(2, p + 0.1))} className="btn-secondary" style={{ padding: '0.1rem 0.4rem', fontSize: '0.8rem' }}>+</button>
                 </div>

@@ -292,14 +292,14 @@ export default function Admin({ initialTab = 'songs' }) {
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         <button 
           onClick={() => { setActiveTab('songs'); clearSongForm(); }}
-          className={activeTab === 'songs' ? 'btn-primary' : 'btn-secondary'}
+          className={activeTab === 'songs' ? 'btn-active' : 'btn-secondary'}
           style={{ flex: 1 }}
         >
           <Music size={20} /> Músicas
         </button>
         <button 
           onClick={() => { setActiveTab('events'); clearEventForm(); }}
-          className={activeTab === 'events' ? 'btn-primary' : 'btn-secondary'}
+          className={activeTab === 'events' ? 'btn-active' : 'btn-secondary'}
           style={{ flex: 1 }}
         >
           <CalendarPlus size={20} /> Agendar Evento
