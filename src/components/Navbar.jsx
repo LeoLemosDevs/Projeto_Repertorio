@@ -24,7 +24,7 @@ export default function Navbar() {
       }}>
         <Link to="/" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
           <Music />
-          <span>Repertório Lemos</span>
+          <span>REPERTÓRIO MUSICAL</span>
         </Link>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <Link to="/" className={location.pathname === '/' ? "btn-primary" : "btn-secondary"} style={location.pathname === '/' ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-primary)' } : { backgroundColor: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}>
