@@ -4,7 +4,10 @@ import { ArrowLeft, PlayCircle, PauseCircle, Plus, Minus, Music as MusicIcon, Zo
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
-const notesList = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const chromaticSharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const flatToSharp = {
+  'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+};
 
 export default function SongView() {
   const { id } = useParams();
@@ -12,7 +15,7 @@ export default function SongView() {
   const { eventId, currentSongIndex } = location.state || {};
   
   const [song, setSong] = useState(null);
-  const [toneIndex, setToneIndex] = useState(0);
+  const [currentTone, setCurrentTone] = useState('C');
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
   
@@ -37,9 +40,7 @@ export default function SongView() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setSong({ id: docSnap.id, ...data });
-          
-          const idx = notesList.indexOf(data.originalTone || 'C');
-          setToneIndex(idx !== -1 ? idx : 0);
+          setCurrentTone(data.originalTone || 'C');
         }
       } catch (error) {
         console.error("Erro ao buscar música:", error);
@@ -69,8 +70,23 @@ export default function SongView() {
   if (loading) return <div style={{ textAlign: 'center', marginTop: '3rem' }}>Carregando música...</div>;
   if (!song) return <div style={{ textAlign: 'center', marginTop: '3rem' }}>Música não encontrada.</div>;
 
-  const currentTone = notesList[(toneIndex + 12) % 12];
-  const transposeTone = (step) => setToneIndex((prev) => prev + step);
+  const transposeTone = (step) => {
+    setCurrentTone(prevTone => {
+      let root = prevTone;
+      let suffix = '';
+      if (prevTone.endsWith('m')) {
+        root = prevTone.slice(0, -1);
+        suffix = 'm';
+      }
+      
+      let searchRoot = flatToSharp[root] || root;
+      let idx = chromaticSharps.indexOf(searchRoot);
+      if (idx === -1) return prevTone; // fallback para erros
+      
+      let newIdx = (idx + step + 12) % 12;
+      return chromaticSharps[newIdx] + suffix;
+    });
+  };
 
   return (
     <div className="animate-slide-up" style={{ 
