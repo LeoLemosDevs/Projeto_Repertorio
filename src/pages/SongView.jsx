@@ -41,14 +41,18 @@ export default function SongView() {
     fetchSong();
   }, [id]);
 
+  // Lógica de rolagem automática refatorada para rolar apenas a div da letra
   useEffect(() => {
     let interval;
     if (isPlaying && song) {
-      const baseIntervalMs = (song.scrollSpeed || 60) * 1000 / window.document.body.scrollHeight || 50;
-      const actualInterval = baseIntervalMs * speedMultiplier;
-      interval = setInterval(() => {
-        window.scrollBy({ top: 1, behavior: 'smooth' });
-      }, actualInterval);
+      const container = document.getElementById('lyrics-scroll-container');
+      if (container) {
+        const baseIntervalMs = (song.scrollSpeed || 60) * 1000 / container.scrollHeight || 50;
+        const actualInterval = baseIntervalMs * speedMultiplier;
+        interval = setInterval(() => {
+          container.scrollBy({ top: 1, behavior: 'auto' });
+        }, actualInterval);
+      }
     }
     return () => clearInterval(interval);
   }, [isPlaying, song, speedMultiplier]);
@@ -60,25 +64,25 @@ export default function SongView() {
   const transposeTone = (step) => setToneIndex((prev) => prev + step);
 
   return (
-    <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
+    <div className="animate-slide-up" style={{ 
+      maxWidth: '800px', 
+      margin: '0 auto', 
+      display: 'flex', 
+      flexDirection: 'column',
+      height: 'calc(100vh - 90px)', // Altura total menos a Navbar
+      overflow: 'hidden' // Impede a rolagem da página inteira
+    }}>
       
-      {/* Bloco 100% Fixo no Topo (Cabeçalho + Notas + Controles) */}
-      <div style={{ 
-        position: 'sticky', 
-        top: '64px', // Logo abaixo do Navbar
-        zIndex: 10, 
-        backgroundColor: 'var(--color-bg-main)', // Fundo sólido para esconder a letra passando
-        paddingTop: '1rem',
-        paddingBottom: '0.5rem'
-      }}>
+      {/* Bloco 100% Fixo no Topo (Não rola nunca) */}
+      <div style={{ flexShrink: 0, paddingBottom: '0.5rem' }}>
         
         {/* Cabeçalho da Música */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
           <div>
-            <Link to={eventId ? `/event/${eventId}` : '/'} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', textDecoration: 'none', marginBottom: '0.5rem' }}>
+            <Link to={eventId ? `/event/${eventId}` : '/'} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', textDecoration: 'none', marginBottom: '0.25rem' }}>
               <ArrowLeft size={16} /> Voltar
             </Link>
-            <h1 style={{ fontSize: '1.75rem', color: 'var(--color-primary)', margin: '0 0 0.25rem 0', lineHeight: 1 }}>{song.title}</h1>
+            <h1 style={{ fontSize: '1.5rem', color: 'var(--color-primary)', margin: '0 0 0.25rem 0', lineHeight: 1 }}>{song.title}</h1>
             <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: '0.9rem' }}>{song.singer}</p>
           </div>
           
@@ -112,7 +116,7 @@ export default function SongView() {
           </div>
         </div>
 
-        {/* Controles de Leitura (Compactos em uma linha) */}
+        {/* Controles de Leitura (Abaixo das Notas) */}
         <div className="glass-panel" style={{ 
           display: 'flex', 
           gap: '0.5rem', 
@@ -156,15 +160,28 @@ export default function SongView() {
         </div>
       </div>
 
-      {/* Letra da Música */}
-      <div className="glass-panel" style={{ padding: '1.5rem', fontSize: `${fontSize}rem`, lineHeight: '1.8', transition: 'font-size 0.2s', marginTop: '1rem' }}>
+      {/* Área de Rolagem da Letra */}
+      <div 
+        id="lyrics-scroll-container"
+        className="glass-panel" 
+        style={{ 
+          flexGrow: 1, // Preenche todo o espaço restante
+          overflowY: 'auto', // Só esta div vai rolar!
+          padding: '1.5rem', 
+          fontSize: `${fontSize}rem`, 
+          lineHeight: '1.8', 
+          transition: 'font-size 0.2s',
+          marginTop: '0.5rem',
+          scrollBehavior: 'smooth'
+        }}
+      >
         <div style={{ whiteSpace: 'pre-wrap', color: 'var(--color-text-main)' }}>
           {song.lyrics || "Nenhuma letra cadastrada."}
         </div>
+        
+        {/* Espaço extra para a última linha conseguir subir */}
+        <div style={{ height: '60vh' }}></div>
       </div>
-      
-      {/* Espaço extra */}
-      <div style={{ height: '70vh' }}></div>
 
     </div>
   );
